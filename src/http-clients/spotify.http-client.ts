@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { SpotifyArtist, SpotifyTrack } from './types/spotify.interface';
 
 class SpotifyHttpClient {

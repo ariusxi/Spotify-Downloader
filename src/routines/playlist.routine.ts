@@ -121,7 +121,7 @@ class PlaylistRoutine {
       if (!videoId) {
         searchVideoSpinner.error();
         console.log(`Não foi possível encontrar o vídeo ${query}`);
-        return;
+        continue;
       }
 
       searchVideoSpinner.success();
