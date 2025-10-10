@@ -13,6 +13,7 @@ export interface SpotifyExternalId {
 export interface SpotifyTrack {
   id: string;
   name: string;
+  coverUrl: string;
   artists: SpotifyArtist[];
   album: SpotifyAlbum;
   external_ids?: SpotifyExternalId[];

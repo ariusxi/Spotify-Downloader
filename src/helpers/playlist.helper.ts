@@ -18,19 +18,24 @@ export const extractPlaylistId = (playlistUrl: string): string => {
   return null;
 }
 
-export const extractTracksData = (tracks): SpotifyTrack[] => {
-  const formattedTracks = tracks.map(({ track }) => {
-    const album = { name: track.album.name };
-    const artists = track.artists.map((artist) => ({ name: artist.name }));
-    
-    return {
-      id: track.id,
-      name: track.name,
-      artists,
-      album,
-      external_ids: track.external_ids,
-    }
-  });
+export const extractTracksData = async (tracks): Promise<SpotifyTrack[]> => {
+  const formattedTracks = tracks.map(({ track }) => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists.map(artist => ({ name: artist.name })),
+    album: { name: track.album.name },
+    coverUrl: track.album.images[0]?.url,
+    external_ids: track.external_ids,
+  }));
 
   return formattedTracks;
+}
+
+export const sanitizeFileName = (name: string): string => {
+  return name
+    .replace(/[<>:"/\\|?*]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\.$/, '')
+    .replace(/:|;/g, '_');
 }

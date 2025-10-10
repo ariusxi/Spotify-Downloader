@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { SpotifyTrack } from './types/spotify.interface';
+import { SpotifyArtist, SpotifyTrack } from './types/spotify.interface';
 
 class SpotifyHttpClient {
   private readonly user = process.env.SPOTIFY_CLIENT_ID;
@@ -42,11 +42,29 @@ class SpotifyHttpClient {
 
       return response.data.items;
     } catch (error) {
-      console.log(error);
       if (axios.isAxiosError(error) && error.response.status === 404) {
         throw new Error(`Playlist não encontrada ou privada (id: ${playlistId})`);
       }
       throw new Error(`Falha ao resgatar informações de playlist: ${playlistId}`);
+    }
+  }
+
+  public async getArtistsMetadata(artistId: string): Promise<SpotifyArtist> {
+    const token = await this.getToken();
+
+    try {
+      const response = await axios.get(`${this.url}/artists/${artistId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response.status === 404) {
+        throw new Error(`Artista não encontrado ou privada (id: ${artistId})`);
+      }
+      throw new Error(`Falha ao resgatar informações de artista: ${artistId}`);
     }
   }
 
