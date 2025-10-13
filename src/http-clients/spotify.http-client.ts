@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SpotifyArtist, SpotifyTrack } from './types/spotify.interface';
+import { SpotifyAlbum, SpotifyArtist, SpotifyTrack } from './types/spotify.interface';
 
 class SpotifyHttpClient {
   private readonly user = process.env.SPOTIFY_CLIENT_ID;
@@ -46,6 +46,44 @@ class SpotifyHttpClient {
         throw new Error(`Playlist não encontrada ou privada (id: ${playlistId})`);
       }
       throw new Error(`Falha ao resgatar informações de playlist: ${playlistId}`);
+    }
+  }
+
+  public async fetchAlbumMetadata(albumId: string): Promise<SpotifyAlbum> {
+    const token = await this.getToken();
+
+    try {
+      const response = await axios.get(`${this.url}/albums/${albumId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response.status === 404) {
+        throw new Error(`Álbum não encontrado (id: ${albumId})`);
+      }
+      throw new Error(`Falha ao resgatar faixas do álbum: ${albumId}`);
+    }
+  }
+
+  public async fetchAllAlbumTracks(albumId: string): Promise<SpotifyTrack[]> {
+    const token = await this.getToken();
+
+    try {
+      const response = await axios.get(`${this.url}/albums/${albumId}/tracks`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.items;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response.status === 404) {
+        throw new Error(`Álbum não encontrado (id: ${albumId})`);
+      }
+      throw new Error(`Falha ao resgatar faixas do álbum: ${albumId}`);
     }
   }
 

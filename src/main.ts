@@ -2,22 +2,33 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-import { extractPlaylistId } from './helpers/playlist.helper';
+import { extractSpotifyId } from './helpers/playlist.helper';
+
+import AlbumRoutine from './routines/album.routine';
+import DownloadRoutine from './routines/download.routine';
 import PlaylistRoutine from './routines/playlist.routine';
 
 const bootstrap = async (args: string[]) => {
   const argument = args.slice(2);
-  const playlistUrl = argument[0];
+  const listUrl = argument[0];
   
-  if (!playlistUrl) {
+  if (!listUrl) {
     return console.error('Você deve enviar uma URL Playlist');
   }
 
-  const playlistId = extractPlaylistId(playlistUrl);
-  if (!playlistId) {
+  const metadata = extractSpotifyId(listUrl);
+  if (!metadata) {
     return console.error('Link de playlist inválido');
   }
 
-  return await PlaylistRoutine.run(playlistId);
+  const { actionId, actionType } = metadata;
+  const actions = {
+    'playlist': PlaylistRoutine.run,
+    'album': AlbumRoutine.run,
+  }
+
+  const tracks = await actions[actionType](actionId)
+
+  await DownloadRoutine.run(tracks);
 }
 bootstrap(process.argv);
