@@ -1,109 +1,63 @@
 import axios from 'axios';
 import { SpotifyAlbum, SpotifyArtist, SpotifyTrack } from './types/spotify.interface';
+import SpotifyAuthClient from './spotify-auth.http-client';
 
 class SpotifyHttpClient {
-  private readonly user = process.env.SPOTIFY_CLIENT_ID;
-  private readonly pass = process.env.SPOTIFY_CLIENT_SECRET;
   private readonly url = process.env.SPOTIFY_API_URL;
 
-  private getUserToken(): string {
-    const token = Buffer.from(`${this.user}:${this.pass}`).toString('base64');
-    
-    return token;
-  }
-
-  public async getToken(): Promise<string> {
-    const payload = 'grant_type=client_credentials';
-    const token = this.getUserToken();
+  private async request<T>(url: string, notFoundMessage: string, failMessage: string): Promise<T> {
+    const token = await SpotifyAuthClient.getToken();
 
     try {
-      const response = await axios.post('https://accounts.spotify.com/api/token', payload, {
+      const response = await axios.get(url, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${token}`,
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      return response.data.access_token;
+      return response.data;
     } catch (error) {
-      throw new Error('Falha ao efetuar autenticação');
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new Error(notFoundMessage);
+      }
+      throw new Error(failMessage);
     }
   }
 
   public async fetchAllPlaylistTracks(playlistId: string, limit = 100): Promise<SpotifyTrack[]> {
-    const token = await this.getToken();
+    const data = await this.request<{ items: SpotifyTrack[] }>(
+      `${this.url}/playlists/${playlistId}/tracks?limit=${limit}`,
+      `Playlist não encontrada ou privada (id: ${playlistId})`,
+      `Falha ao resgatar informações de playlist: ${playlistId}`,
+    );
 
-    try {
-      const response = await axios.get(`${this.url}/playlists/${playlistId}/tracks?limit=${limit}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data.items;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response.status === 404) {
-        throw new Error(`Playlist não encontrada ou privada (id: ${playlistId})`);
-      }
-      throw new Error(`Falha ao resgatar informações de playlist: ${playlistId}`);
-    }
+    return data.items;
   }
 
   public async fetchAlbumMetadata(albumId: string): Promise<SpotifyAlbum> {
-    const token = await this.getToken();
-
-    try {
-      const response = await axios.get(`${this.url}/albums/${albumId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response.status === 404) {
-        throw new Error(`Álbum não encontrado (id: ${albumId})`);
-      }
-      throw new Error(`Falha ao resgatar faixas do álbum: ${albumId}`);
-    }
+    return this.request<SpotifyAlbum>(
+      `${this.url}/albums/${albumId}`,
+      `Álbum não encontrado (id: ${albumId})`,
+      `Falha ao resgatar faixas do álbum: ${albumId}`,
+    );
   }
 
   public async fetchAllAlbumTracks(albumId: string): Promise<SpotifyTrack[]> {
-    const token = await this.getToken();
+    const data = await this.request<{ items: SpotifyTrack[] }>(
+      `${this.url}/albums/${albumId}/tracks`,
+      `Álbum não encontrado (id: ${albumId})`,
+      `Falha ao resgatar faixas do álbum: ${albumId}`,
+    );
 
-    try {
-      const response = await axios.get(`${this.url}/albums/${albumId}/tracks`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data.items;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response.status === 404) {
-        throw new Error(`Álbum não encontrado (id: ${albumId})`);
-      }
-      throw new Error(`Falha ao resgatar faixas do álbum: ${albumId}`);
-    }
+    return data.items;
   }
 
   public async getArtistsMetadata(artistId: string): Promise<SpotifyArtist> {
-    const token = await this.getToken();
-
-    try {
-      const response = await axios.get(`${this.url}/artists/${artistId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response.status === 404) {
-        throw new Error(`Artista não encontrado ou privada (id: ${artistId})`);
-      }
-      throw new Error(`Falha ao resgatar informações de artista: ${artistId}`);
-    }
+    return this.request<SpotifyArtist>(
+      `${this.url}/artists/${artistId}`,
+      `Artista não encontrado ou privada (id: ${artistId})`,
+      `Falha ao resgatar informações de artista: ${artistId}`,
+    );
   }
 
 }
